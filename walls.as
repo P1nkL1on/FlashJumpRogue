@@ -100,6 +100,8 @@ class walls{
             this._rotation = this.standingAngle;
         }
         o.addWork(function(){
+            if (o.standingOn == null)
+                return;
 			if (Key.isDown(Key.LEFT))
 				o.segmentDist -= 2;
 			if (Key.isDown(Key.RIGHT))
@@ -110,6 +112,23 @@ class walls{
     }
 
     static function jumper(o:Object){
-
+        // falling work
+        o.flySpd = point(0, 0);
+        o.acselerateInAir = function(){
+            this.flySpd._x += -.05;
+            this.flySpd._y += .1;
+        }
+        o.move = function(spd){ this._x += spd._x; this._y += spd._y; }
+        o.jump = function(){ this.standingOn = null; }
+        o.addWork(function(){
+            if (o.standingOn != null){
+                if (Key.isDown(Key.SPACE))
+                    o.jump();
+                return;
+            }
+            o.acselerateInAir();
+            o.move(o.flySpd);
+        });
+        return o;
     }
 }
