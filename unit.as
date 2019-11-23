@@ -1,4 +1,8 @@
 class unit { 
+
+    static var gx = 0;
+    static var gy = .3;
+
     static function multiWorker(o:Object){
         if (o.funcs != undefined)
             return o;
@@ -40,11 +44,13 @@ class unit {
     }
 
     static function jumper(o:Object){
-        // falling work
+        o.jumpInitialSpeed = 10;
         o.flySpd = walls.point(0, 0);
+
+
         o.acselerateInAir = function(){
-            this.flySpd._x += -.05;
-            this.flySpd._y += .1;
+            this.flySpd._x += gx;
+            this.flySpd._y += gy;
         }
 
         o.move = function(spd){ 
@@ -61,10 +67,13 @@ class unit {
         }
 
         o.jump = function(){
+            var speedMultiplier = this.isInsideContour? 1 : -1;
+            this.flySpd._y = - this.standingOn.coss[this.segmentInd] * this.jumpInitialSpeed * speedMultiplier;
+            this.flySpd._x = this.standingOn.sins[this.segmentInd] * this.jumpInitialSpeed * speedMultiplier;
             this.standingOn = null;
         }
         
-        o.finishJump = function(wallContour, segmentInd, segmentDist, isInsideContour){
+        o.land = function(wallContour, segmentInd, segmentDist, isInsideContour){
             this.standOn(wallContour, segmentInd, segmentDist, isInsideContour);
             this.flySpd = walls.point(0, 0);
             this.recalculate();

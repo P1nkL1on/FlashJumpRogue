@@ -23,4 +23,16 @@ class raytrace {
         var koef = resAfrom / (resAfrom - resAto);
         return walls.point(fromA._x + koef * dirA._x, fromA._y + koef * dirA._y);
     }
+
+    static function isInside(p:Object, c:Object){
+        var pH = walls.point(p._x + 1000, p._y);
+        var intersections = 0;
+
+        for (var i = 0; i < c.pointInds.length - 1; ++i){
+            var pfrom = c.p(i), pto = c.p(i + 1);
+            if (intersect(p, pH, pfrom, pto) != null)
+                ++intersections;
+        }
+        return intersections % 2 != 0;
+    }
 }
