@@ -1,6 +1,8 @@
 class walls{
     static var points = new Array();
 
+    static var contours = new Array();
+
     static function point(x, y){var o = new Object(); o._x = x; o._y = y; return o;}
 
     static function pushPoints(xys:Array){ for (var i = 0; i < xys.length; i += 2) points.push(point(xys[i], xys[i+1])); }
@@ -39,8 +41,9 @@ class walls{
             var y = this.p(object.segmentInd)._y + this.sins[object.segmentInd] * object.segmentDist;
             object.standingX = x;
             object.standingY = y;
-            object.standingAngle = this.segmentAngs[object.segmentInd]
-                                 + !object.isInsideContour * 180;
+            object.standingAngle = 
+                this.segmentAngs[object.segmentInd]
+                + !object.isInsideContour * 180;
         }
         c.cropPos = function(object){
             if (object.segmentDist >= 0 && object.segmentDist <= this.segmentDists[object.segmentInd])
@@ -59,6 +62,20 @@ class walls{
             }
             return false;
         }
+        c.findCollision = function(jumper){
+            var jumperTo = walls.point(
+                jumper._x + jumper.flySpd._x,
+                jumper._y + jumper.flySpd._y);
+            
+            for (var i = 0; i < this.pointInds.length - 1; ++i){
+                var pfrom = this.p(i), pto = this.p(i + 1);
+                var intersect = raytrace.intersect(jumper, jumperTo, pfrom, pto);
+                if (intersect == null)
+                    continue;
+                var distToPoint = dist(intersect, pfrom);
+                jumper.finishJump(this, i, distToPoint, true);  
+            }
+        }
         c.draw = function(){
             for (var i = 0; i < this.pointInds.length - 1; ++i){
                 var pfrom = this.p(i), pto = this.p(i + 1);
@@ -68,67 +85,7 @@ class walls{
         }
         c.recalculate();
         c.draw();
+        contours.push(c);
         return c;
-    }
-
-    static function multiWorker(o:Object){
-        if (o.funcs != undefined)
-            return o;
-        o.funcs = new Array();
-        o.onEnterFrame = function(){
-            for (var i = 0; i < this.funcs.length; ++i)
-                this.funcs[i]();
-        }
-        o.addWork = function(func){ this.funcs.push(func); }
-        return o;
-    }
-
-    static function stander(o:Object){
-        o.standOn = function(wallContour){ return this.standOn(wallContour, 0, 0, false); }
-        o.standOn = function(wallContour, segmentInd, segmentDist, isInsideContour){
-            this.standingOn = wallContour;
-            this.segmentInd = segmentInd;
-            this.segmentDist = segmentDist;
-            this.isInsideContour = isInsideContour;
-        }
-        o.recalculate = function(){
-            this.standingOn.cropPos(this);
-            this.standingOn.place(this);
-            //! move to another place
-            this._x = this.standingX; 
-            this._y = this.standingY;
-            this._rotation = this.standingAngle;
-        }
-        o.addWork(function(){
-            if (o.standingOn == null)
-                return;
-			if (Key.isDown(Key.LEFT))
-				o.segmentDist -= 2;
-			if (Key.isDown(Key.RIGHT))
-				o.segmentDist += 2;
-			o.recalculate();
-        });
-        return o;
-    }
-
-    static function jumper(o:Object){
-        // falling work
-        o.flySpd = point(0, 0);
-        o.acselerateInAir = function(){
-            this.flySpd._x += -.05;
-            this.flySpd._y += .1;
-        }
-        o.move = function(spd){ this._x += spd._x; this._y += spd._y; }
-        o.jump = function(){ this.standingOn = null; }
-        o.addWork(function(){
-            if (o.standingOn != null){
-                if (Key.isDown(Key.SPACE))
-                    o.jump();
-                return;
-            }
-            o.acselerateInAir();
-            o.move(o.flySpd);
-        });
-        return o;
     }
 }
