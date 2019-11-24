@@ -14,7 +14,7 @@ class walls{
     static function angRad(pointA, pointB){return Math.atan2(pointB._y - pointA._y, pointB._x - pointA._x);}
 
 
-    static var jumpOffset = .05;
+    static var jumpOffset = .01;
 
     static function contour(pointInds:Array){
         var c = new Object();
@@ -96,5 +96,11 @@ class walls{
         c.draw();
         contours.push(c);
         return c;
+    }
+
+    // speedNegation = 0.9
+    static function setGroundOptions(o, speedNegation){
+        o.speedNegation = speedNegation;
+        return o;
     }
 }

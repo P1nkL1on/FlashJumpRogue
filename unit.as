@@ -24,6 +24,8 @@ class unit {
             this.isInsideContour = isInsideContour;
         }
         o.recalculate = function(){
+            if (this.standingOn == null)
+                return;
             this.standingOn.cropPos(this);
             this.standingOn.place(this);
             //! move to another place
@@ -31,15 +33,42 @@ class unit {
             this._y = this.standingY;
             this._rotation = this.standingAngle;
         }
-        o.addWork(function(){
-            if (o.standingOn == null)
+        return o;
+    }
+
+    static function mover(o:Object){
+        o.moveSpd = 0;
+        o.moveAcs = .3;
+        o.moveSpdMax = 3;
+        
+        // -1 or 1
+        o.groundMove = function(leftRightMultiplier){
+            if (this.standingOn == null)
                 return;
-			if (Key.isDown(Key.LEFT))
-				o.segmentDist -= 2;
-			if (Key.isDown(Key.RIGHT))
-				o.segmentDist += 2;
+            if (!leftRightMultiplier){
+                this.moveSpd *= this.standingOn.speedNegation;
+                if (Math.abs(this.moveSpd) < this.moveAcs)
+                    this.moveSpd = 0;
+                return;
+            }
+            if (leftRightMultiplier > 0){
+                if (this.moveSpd >= this.moveSpdMax)
+                    return;
+                this.moveSpd += this.moveAcs;
+            }else{
+                if (this.moveSpd <= - this.moveSpdMax)
+                    return;
+                this.moveSpd -= this.moveAcs;
+            }
+        }
+
+        o.addWork(function(){
+            o.groundMove(Key.isDown(Key.LEFT) * (-1)
+                       + Key.isDown(Key.RIGHT) * 1);
+            o.segmentDist += o.moveSpd;
 			o.recalculate();
         });
+
         return o;
     }
 
