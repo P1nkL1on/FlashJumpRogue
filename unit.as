@@ -63,8 +63,6 @@ class unit {
         }
 
         o.addWork(function(){
-            o.groundMove(Key.isDown(Key.LEFT) * (-1)
-                       + Key.isDown(Key.RIGHT) * 1);
             o.segmentDist += o.moveSpd;
 			o.recalculate();
         });
@@ -83,8 +81,6 @@ class unit {
         }
 
         o.move = function(spd){ 
-            if (o.standingOn != null)
-                return;
             this._x += spd._x;
             this._y += spd._y; 
         }
@@ -109,21 +105,75 @@ class unit {
         
         o.land = function(wallContour, segmentInd, segmentDist, isInsideContour){
             this.standOn(wallContour, segmentInd, segmentDist, isInsideContour);
+            if (this.moveSpd != undefined){
+                var wallAng = this.standingOn.segmentAngs[segmentInd] * Math.PI / 180;
+                // var wallNormalAng = wallAng + (!isInsideContour? 1 : -1) * .5 * Math.PI;
+                // trace(wallAng + '/' + wallNormalAng);
+                var jumpPoint = walls.point(this._x + this.flySpd._x, this._y + this.flySpd._y);
+                var jumpAng = walls.angRad(this, jumpPoint);
+                // trace(wallAng - jumpAng);
+                var difAng = wallAng - jumpAng;
+                this.moveSpd = Math.cos(difAng) * walls.dist(this, jumpPoint);
+            }   
             this.flySpd = walls.point(0, 0);
             this.recalculate();
+            this.swapKeyframePallete();
         }
 
         o.addWork(function(){
-            if (o.standingOn != null){
-                if (Key.isDown(Key.SPACE))
-                    o.jump();
+            if (o.standingOn != null)
                 return;
-            }
             o.acselerateInAir();
             o.findInAirCollision();
             o.move(o.flySpd);
         });
 
+        return o;
+    }
+
+    static function controll(o){
+        o.keyframePallete = new Array(32, 65, 83, 68, 87);
+        o.k = new Array(0, 1, 2, 3, 4);
+        o.keyframePalleteNumber = new Array();
+        o.keyClicked = new Array();
+        o.keyPressed = new Array();
+        o.swapKeyframePallete = function(){
+            if (this._rotation < 90 && this._rotation > -90){
+                this.k[1] = 1; this.k[3] = 3;
+            }
+            if (this._rotation > 90 || this._rotation < -90){
+                this.k[1] = 3; this.k[3] = 1;
+            }
+            if (this._rotation < 0 && this._rotation > -180){
+                this.k[2] = 2; this.k[4] = 4;
+            }
+            if (this._rotation > 0 && this._rotation < 180){
+                this.k[2] = 4; this.k[4] = 2;
+            }
+        }
+        o.watchKeyPress = function(){
+            for (var i = 0; i < this.keyframePallete.length; ++i){
+                if (Key.isDown(this.keyframePallete[i]))
+                    ++this.keyframePalleteNumber[i]; else this.keyframePalleteNumber[i] = 0;
+                this.keyClicked[i] = this.keyframePalleteNumber[i] == 1;
+                this.keyPressed[i] = this.keyframePalleteNumber[i] > 0;
+            }
+        }
+        o.addWork(function(){
+            o.watchKeyPress();
+            if (o.standingOn == null)
+                return;
+            if (o.keyClicked[0])
+                o.jump();
+            var moveDirectionIsInside = 
+                o.isInsideContour? -1 : 1;
+            var moveDirection = 
+                  (+ moveDirectionIsInside) * (o.keyPressed[o.k[1]] | o.keyPressed[o.k[2]])
+                + (- moveDirectionIsInside) * (o.keyPressed[o.k[3]] | o.keyPressed[o.k[4]]);
+            o.groundMove(moveDirection);
+            if (!moveDirection)
+                o.swapKeyframePallete();
+        });
         return o;
     }
 }
