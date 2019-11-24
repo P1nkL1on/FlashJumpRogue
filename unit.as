@@ -73,7 +73,7 @@ class unit {
     }
 
     static function jumper(o:Object){
-        o.jumpInitialSpeed = 10;
+        o.jumpInitialSpeed = 7;
         o.flySpd = walls.point(0, 0);
 
 
@@ -98,7 +98,12 @@ class unit {
         o.jump = function(){
             var speedMultiplier = this.isInsideContour? 1 : -1;
             this.flySpd._y = - this.standingOn.coss[this.segmentInd] * this.jumpInitialSpeed * speedMultiplier;
-            this.flySpd._x = this.standingOn.sins[this.segmentInd] * this.jumpInitialSpeed * speedMultiplier;
+            this.flySpd._x = + this.standingOn.sins[this.segmentInd] * this.jumpInitialSpeed * speedMultiplier;
+            if (this.moveSpd != undefined){
+                this.flySpd._x += this.standingOn.coss[this.segmentInd] * this.moveSpd;
+                this.flySpd._y += this.standingOn.sins[this.segmentInd] * this.moveSpd;
+                this.moveSpd = 0;
+            }
             this.standingOn = null;
         }
         
