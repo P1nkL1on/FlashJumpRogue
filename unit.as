@@ -137,18 +137,41 @@ class unit {
         o.keyframePalleteNumber = new Array();
         o.keyClicked = new Array();
         o.keyPressed = new Array();
+        o.previousStandingAngle = o.standingAngle;
         o.swapKeyframePallete = function(){
-            if (this._rotation < 90 && this._rotation > -90){
-                this.k[1] = 1; this.k[3] = 3;
-            }
-            if (this._rotation > 90 || this._rotation < -90){
-                this.k[1] = 3; this.k[3] = 1;
-            }
-            if (this._rotation < 0 && this._rotation > -180){
-                this.k[2] = 2; this.k[4] = 4;
-            }
-            if (this._rotation > 0 && this._rotation < 180){
-                this.k[2] = 4; this.k[4] = 2;
+            if (this.standingAngle == this.previousStandingAngle)
+                return;
+            this.previousStandingAngle = this.standingAngle;
+
+            var keyDownAD =     (this.standingAngle < 90 && this.standingAngle > -90);
+            var keyUpAD =       (this.standingAngle > 90 || this.standingAngle < -90);
+            var keyRightWS =    (this.standingAngle < 0 && this.standingAngle > -180);
+            var keyLeftWS =     (this.standingAngle > 0 && this.standingAngle < 180);
+
+
+            this.k[1] = keyDownAD? 1 : keyUpAD? 3 : this.k[1];
+            this.k[3] = keyDownAD? 3 : keyUpAD? 1 : this.k[3];
+            this.k[2] = keyRightWS? 2 : keyLeftWS? 4 : this.k[2];
+            this.k[4] = keyRightWS? 4 : keyLeftWS? 2 : this.k[4];
+
+            show keys required to press to move in direction left-right
+            for (var ii = 0; ii < 4; ++ii){
+                var i = this.isInsideContour? ii : (3 - ii);
+                var name = "key_" + this.standingOn._name + "_" + i + "__" + this.segmentInd;
+                var k;
+                if (_root[name] == undefined){
+                    k = _root.attachMovie("key", name, _root.getNextHighestDepth());
+                    var F = walls.points[this.standingOn.pointInds[this.segmentInd]];
+                    var T = walls.points[this.standingOn.pointInds[this.segmentInd + 1]];
+                    var st = 10 / this.standingOn.segmentDists  [this.segmentInd];
+                    var off = (i - 2.5 + 2 * (i > 1)) * st * .5;
+                    k._x = F._x * (.5 - off) + T._x * (.5 + off);
+                    k._y = F._y * (.5 - off) + T._y * (.5 + off);
+                }else{
+                    k = _root[name];
+                }
+                var val = this.k[ii + 1];
+                k._rotation = val == 1? 180 : val == 2? 90 : val == 3? 0 : -90
             }
         }
         o.watchKeyPress = function(){

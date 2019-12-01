@@ -18,6 +18,7 @@ class walls{
 
     static function contour(pointInds:Array){
         var c = new Object();
+        c._name = "Contour" + contours.length;
         c.count = pointInds.length;
         c.pointInds = pointInds;
         c.pointInds.push(c.pointInds[0]);
@@ -43,9 +44,11 @@ class walls{
             var y = this.p(object.segmentInd)._y + this.sins[object.segmentInd] * object.segmentDist;
             object.standingX = x;
             object.standingY = y;
-            object.standingAngle = 
-                this.segmentAngs[object.segmentInd]
-                + !object.isInsideContour * 180;
+            var sa = this.segmentAngs[object.segmentInd]
+                + !object.isInsideContour * 180
+            while (sa > 180) sa -= 360; while (sa < -180) sa += 360;
+
+            object.standingAngle = sa;
         }
         c.cropPos = function(object){
             if (object.segmentDist >= 0 && object.segmentDist <= this.segmentDists[object.segmentInd])
