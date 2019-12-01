@@ -3,6 +3,9 @@ class unit {
     static var gx = 0;
     static var gy = .3;
 
+
+    
+
     static function multiWorker(o:Object){
         if (o.funcs != undefined)
             return o;
@@ -70,6 +73,57 @@ class unit {
         return o;
     }
 
+    static var pushers = new Array();
+    static function pusher(o:Object, unitWeigth:Number, unitWidth:Number){
+        o.unitWeigth = unitWeigth == undefined? (o._width * o._height) : unitWeigth;
+        o.unitWidth = unitWidth == undefined? o._width : unitWidth;
+        o.findCollision = function(){
+            if (this.standingOn == null)
+                return null;
+            for (var i = 0; i < pushers.length; ++i)
+                if (pushers[i] != this){
+                    var collisionTarget = pushers[i];
+                    if (collisionTarget.standingOn != this.standingOn
+                     || collisionTarget.segmentInd != this.segmentInd)
+                        continue;
+                    this.collide = Math.abs(this.segmentDist - collisionTarget.segmentDist) < (this.unitWidth + collisionTarget.unitWidth) * .5;
+                    this.collideSide = this.segmentDist < collisionTarget.segmentDist? 1 : -1;
+                    if (this.collide)
+                        return collisionTarget;
+                    // if (collisionTarget.standingOn != this.standingOn)
+                    //     continue;
+                    // var leftSideO = new Object(), rightSideO = new Object();
+                    // leftSideO.segmentInd = rightSideO.segmentInd = this.segmentInd;
+                    // leftSideO.segmentDist = this.segmentDist - .5 * this.unitWidth;
+                    // rightSideO.segmentDist = this.segmentDist + .5 * this.unitWidth;
+                    // this.standingOn.cropPos(leftSideO);
+                    // this.standingOn.cropPos(rightSideO);
+                    // this.collideSide = 
+                    //     leftSideO.segmentInd == collisionTarget.segmentInd && leftSideO.segmentDist < collisionTarget.segmentDist + .5 * collisionTarget.unitWidth? 1 
+                    //   : rightSideO.segmentInd == collisionTarget.segmentInd && rightSideO.segmentDist > collisionTarget.segmentDist - .5 * collisionTarget.unitWidth? -1 : 0;
+                    // if (this.collide = (this.collideSide != 0))
+                    //     return collisionTarget;
+                }
+            return null;
+        }
+        o.addWork(function(){
+            _root[o._name + "_output"].text = 
+                o._name + " stand on " + (o.standingOn == null? "none" : (o.standingOn._name + " _ " + o.standingOn.speedNegation)) + " seg id " + o.segmentInd + "  spd " + o.moveSpd;
+            var collisionTarget = o.findCollision(o);
+            if (collisionTarget == null)
+                return;
+            var v1 = o.moveSpd, v2 = collisionTarget.moveSpd, 
+                m1 = o.unitWeigth, m2 = collisionTarget.unitWeigth;
+            o.moveSpd = (2 * m2 * v2 + v1 * (m1 - m2)) / (m1 + m2);
+            collisionTarget.moveSpd = (2 * m1 * v1 + v2 * (m2 - m1)) / (m1 + m2);
+            o.segmentDist = collisionTarget.segmentDist - o.collideSide
+                          * (o.unitWidth + collisionTarget.unitWidth + 1) * .5;
+            o.recalculate();
+        });
+        pushers.push(o);
+        return o;
+    }
+
     static function jumper(o:Object){
         o.jumpInitialSpeed = 7;
         o.flySpd = walls.point(0, 0);
@@ -108,12 +162,20 @@ class unit {
             if (this.moveSpd != undefined){
                 var wallAng = this.standingOn.segmentAngs[segmentInd] * Math.PI / 180;
                 // var wallNormalAng = wallAng + (!isInsideContour? 1 : -1) * .5 * Math.PI;
-                // trace(wallAng + '/' + wallNormalAng);
                 var jumpPoint = walls.point(this._x + this.flySpd._x, this._y + this.flySpd._y);
                 var jumpAng = walls.angRad(this, jumpPoint);
-                // trace(wallAng - jumpAng);
-                var difAng = wallAng - jumpAng;
-                this.moveSpd = Math.cos(difAng) * walls.dist(this, jumpPoint);
+                var landSpd = walls.dist(this, jumpPoint);
+                this.moveSpd = Math.cos(wallAng - jumpAng) * landSpd;
+
+
+                var movingWall = this.standingOn.unit;
+                if (movingWall != undefined){
+                    var v1 = landSpd, v2 = movingWall.moveSpd, 
+                        m1 = this.unitWeigth, m2 = movingWall.unitWeigth;
+                    var moveWallAng = movingWall.standingOn.segmentAngs[movingWall.segmentInd] * Math.PI / 180;
+                    movingWall.moveSpd += Math.cos(moveWallAng - jumpAng)
+                        * (2 * m1 * v1 + v2 * (m2 - m1)) / (m1 + m2);
+                }
             }   
             this.flySpd = walls.point(0, 0);
             this.recalculate();
@@ -141,38 +203,16 @@ class unit {
         o.swapKeyframePallete = function(){
             if (this.standingAngle == this.previousStandingAngle)
                 return;
-            this.previousStandingAngle = this.standingAngle;
-
             var keyDownAD =     (this.standingAngle < 90 && this.standingAngle > -90);
             var keyUpAD =       (this.standingAngle > 90 || this.standingAngle < -90);
             var keyRightWS =    (this.standingAngle < 0 && this.standingAngle > -180);
             var keyLeftWS =     (this.standingAngle > 0 && this.standingAngle < 180);
 
-
             this.k[1] = keyDownAD? 1 : keyUpAD? 3 : this.k[1];
             this.k[3] = keyDownAD? 3 : keyUpAD? 1 : this.k[3];
             this.k[2] = keyRightWS? 2 : keyLeftWS? 4 : this.k[2];
             this.k[4] = keyRightWS? 4 : keyLeftWS? 2 : this.k[4];
-
-            show keys required to press to move in direction left-right
-            for (var ii = 0; ii < 4; ++ii){
-                var i = this.isInsideContour? ii : (3 - ii);
-                var name = "key_" + this.standingOn._name + "_" + i + "__" + this.segmentInd;
-                var k;
-                if (_root[name] == undefined){
-                    k = _root.attachMovie("key", name, _root.getNextHighestDepth());
-                    var F = walls.points[this.standingOn.pointInds[this.segmentInd]];
-                    var T = walls.points[this.standingOn.pointInds[this.segmentInd + 1]];
-                    var st = 10 / this.standingOn.segmentDists  [this.segmentInd];
-                    var off = (i - 2.5 + 2 * (i > 1)) * st * .5;
-                    k._x = F._x * (.5 - off) + T._x * (.5 + off);
-                    k._y = F._y * (.5 - off) + T._y * (.5 + off);
-                }else{
-                    k = _root[name];
-                }
-                var val = this.k[ii + 1];
-                k._rotation = val == 1? 180 : val == 2? 90 : val == 3? 0 : -90
-            }
+            this.previousStandingAngle = this.standingAngle;
         }
         o.watchKeyPress = function(){
             for (var i = 0; i < this.keyframePallete.length; ++i){

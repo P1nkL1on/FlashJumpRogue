@@ -1,3 +1,6 @@
+import flash.geom.Matrix;
+import flash.geom.Point;
+
 class walls{
     static var points = new Array();
 
@@ -99,6 +102,29 @@ class walls{
         c.draw();
         contours.push(c);
         return c;
+    }
+
+    static function movingContour(o:Object){
+        var count = 0;
+        var indsArray = new Array();
+        for (var i = 0; i < 20; ++i){
+            var movingPoint = o["p" + i];
+            if (movingPoint == undefined)
+                break;
+            indsArray.push(points.length);
+            pushPoints(new Array(o._x + movingPoint._x, o._y + movingPoint._y));
+        }
+        o.contour = contour(indsArray);
+        o.contour.unit = o;
+        o.addWork(function(){
+            for (var i = 0; i < o.contour.pointInds.length - 1; ++i){
+                var m2 = o.transform.matrix;
+                var m1 = m2.transformPoint(new Point(o["p" + i]._x, o["p" + i]._y));
+                points[o.contour.pointInds[i]] = point(m1.x, m1.y);
+            }
+            o.contour.recalculate();
+        });
+        return o.contour;
     }
 
     // speedNegation = 0.9
