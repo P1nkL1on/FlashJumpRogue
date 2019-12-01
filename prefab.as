@@ -8,7 +8,7 @@ class prefab {
                             unit.multiWorker(o)
                         )
                     )
-                , 50, 10)
+                , 500, 10)
             )
         );
     }

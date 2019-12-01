@@ -125,9 +125,7 @@ class unit {
     }
 
     static function jumper(o:Object){
-        o.jumpInitialSpeed = 7;
         o.flySpd = walls.point(0, 0);
-
 
         o.acselerateInAir = function(){
             this.flySpd._x += gx;
@@ -145,15 +143,19 @@ class unit {
                     walls.contours[i].findCollision(o);
         }
 
-        o.jump = function(){
-            var speedMultiplier = this.isInsideContour? 1 : -1;
-            this.flySpd._y = - this.standingOn.coss[this.segmentInd] * this.jumpInitialSpeed * speedMultiplier;
-            this.flySpd._x = + this.standingOn.sins[this.segmentInd] * this.jumpInitialSpeed * speedMultiplier;
+        o.jump = function(jumpSpd){
+            var jumpSpeedMultiplier = this.isInsideContour? 1 : -1;
+            var jumpAngCos = this.standingOn.coss[this.segmentInd];
+            var jumpAngSin = this.standingOn.sins[this.segmentInd];
+            this.flySpd._y = - jumpAngCos * jumpSpd * jumpSpeedMultiplier;
+            this.flySpd._x = + jumpAngSin * jumpSpd * jumpSpeedMultiplier;
             if (this.moveSpd != undefined){
-                this.flySpd._x += this.standingOn.coss[this.segmentInd] * this.moveSpd;
-                this.flySpd._y += this.standingOn.sins[this.segmentInd] * this.moveSpd;
+                this.flySpd._x += jumpAngCos * this.moveSpd;
+                this.flySpd._y += jumpAngSin * this.moveSpd;
                 this.moveSpd = 0;
             }
+            this._x += this.flySpd._x;
+            this._y += this.flySpd._y;
             this.standingOn = null;
         }
         
@@ -166,7 +168,6 @@ class unit {
                 var jumpAng = walls.angRad(this, jumpPoint);
                 var landSpd = walls.dist(this, jumpPoint);
                 this.moveSpd = Math.cos(wallAng - jumpAng) * landSpd;
-
 
                 var movingWall = this.standingOn.unit;
                 if (movingWall != undefined){
@@ -197,8 +198,8 @@ class unit {
         o.keyframePallete = new Array(32, 65, 83, 68, 87);
         o.k = new Array(0, 1, 2, 3, 4);
         o.keyframePalleteNumber = new Array();
-        o.keyClicked = new Array();
-        o.keyPressed = new Array();
+        o.keysClicked = new Array();
+        o.keysPressed = new Array();
         o.previousStandingAngle = o.standingAngle;
         o.swapKeyframePallete = function(){
             if (this.standingAngle == this.previousStandingAngle)
@@ -218,21 +219,23 @@ class unit {
             for (var i = 0; i < this.keyframePallete.length; ++i){
                 if (Key.isDown(this.keyframePallete[i]))
                     ++this.keyframePalleteNumber[i]; else this.keyframePalleteNumber[i] = 0;
-                this.keyClicked[i] = this.keyframePalleteNumber[i] == 1;
-                this.keyPressed[i] = this.keyframePalleteNumber[i] > 0;
+                this.keysClicked[i] = this.keyframePalleteNumber[i] == 1;
+                this.keysPressed[i] = this.keyframePalleteNumber[i] > 0;
             }
         }
+        o.jumpInitialSpeed = 7;
         o.addWork(function(){
             o.watchKeyPress();
             if (o.standingOn == null)
                 return;
-            if (o.keyClicked[0])
-                o.jump();
+            if (o.keysClicked[0])
+                o.jump(o.jumpInitialSpeed);
+            
             var moveDirectionIsInside = 
                 o.isInsideContour? -1 : 1;
             var moveDirection = 
-                  (+ moveDirectionIsInside) * (o.keyPressed[o.k[1]] | o.keyPressed[o.k[2]])
-                + (- moveDirectionIsInside) * (o.keyPressed[o.k[3]] | o.keyPressed[o.k[4]]);
+                  (+ moveDirectionIsInside) * (o.keysPressed[o.k[1]] | o.keysPressed[o.k[2]])
+                + (- moveDirectionIsInside) * (o.keysPressed[o.k[3]] | o.keysPressed[o.k[4]]);
             o.groundMove(moveDirection);
             if (!moveDirection)
                 o.swapKeyframePallete();
