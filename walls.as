@@ -88,7 +88,8 @@ class walls{
                     raytrace.isInside(jumper, this)
                     && !raytrace.isInside(jumperTo, this);
 
-                jumper.land(this, i, distToPoint, isLandInside);  
+                jumper.land(this, i, distToPoint, jumper.previousContour == this?
+                            jumper.previosIsInsideContour : isLandInside);  
             }
         }
         c.draw = function(){

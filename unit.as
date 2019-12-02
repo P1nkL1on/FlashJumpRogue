@@ -143,6 +143,8 @@ class unit {
                     walls.contours[i].findCollision(o);
         }
 
+        o.previousContour = null;
+        o.previosIsInsideContour = null;
         o.jump = function(jumpSpd){
             var jumpSpeedMultiplier = this.isInsideContour? 1 : -1;
             var jumpAngCos = this.standingOn.coss[this.segmentInd];
@@ -156,6 +158,8 @@ class unit {
             }
             this._x += this.flySpd._x;
             this._y += this.flySpd._y;
+            this.previousContour = this.standingOn;
+            this.previosIsInsideContour = this.isInsideContour;
             this.standingOn = null;
         }
         
@@ -177,6 +181,13 @@ class unit {
                     movingWall.moveSpd += Math.cos(moveWallAng - jumpAng)
                         * (2 * m1 * v1 + v2 * (m2 - m1)) / (m1 + m2);
                 }
+                
+                _root.lineStyle(1, 0xFF0000);
+                _root.moveTo(this._x, this._y);
+                _root.lineTo(jumpPoint._x, jumpPoint._y);
+                _root.lineStyle(1, 0x00FF00);
+                _root.moveTo(this._x, this._y);
+                _root.lineTo((jumpPoint._x + this._x) * .5, (jumpPoint._y + this._y) * .5);
             }   
             this.flySpd = walls.point(0, 0);
             this.recalculate();
