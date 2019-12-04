@@ -16,9 +16,6 @@ class walls{
 
     static function angRad(pointA, pointB){return Math.atan2(pointB._y - pointA._y, pointB._x - pointA._x);}
 
-
-    static var jumpOffset = .01;
-
     static function contour(pointInds:Array){
         var c = new Object();
         c._name = "Contour" + contours.length;
@@ -70,28 +67,28 @@ class walls{
             }
             return false;
         }
-        c.findCollision = function(jumper){
-            var jumperFrom = walls.point(
-                jumper._x + jumper.flySpd._x * jumpOffset,
-                jumper._y + jumper.flySpd._y * jumpOffset);
-            var jumperTo = walls.point(
-                jumper._x + jumper.flySpd._x * (1 + jumpOffset),
-                jumper._y + jumper.flySpd._y * (1 + jumpOffset));
+        // c.findCollision = function(jumper){
+        //     var jumperFrom = walls.point(
+        //         jumper._x + jumper.flySpd._x * jumpOffset,
+        //         jumper._y + jumper.flySpd._y * jumpOffset);
+        //     var jumperTo = walls.point(
+        //         jumper._x + jumper.flySpd._x * (1 + jumpOffset),
+        //         jumper._y + jumper.flySpd._y * (1 + jumpOffset));
             
-            for (var i = 0; i < this.pointInds.length - 1; ++i){
-                var pfrom = this.p(i), pto = this.p(i + 1);
-                var intersect = raytrace.intersect(jumperFrom, jumperTo, pfrom, pto);
-                if (intersect == null)
-                    continue;
-                var distToPoint = dist(intersect, pfrom);
-                var isLandInside = 
-                    raytrace.isInside(jumper, this)
-                    && !raytrace.isInside(jumperTo, this);
+        //     for (var i = 0; i < this.pointInds.length - 1; ++i){
+        //         var pfrom = this.p(i), pto = this.p(i + 1);
+        //         var intersect = raytrace.intersect(jumperFrom, jumperTo, pfrom, pto);
+        //         if (intersect == null)
+        //             continue;
+        //         var distToPoint = dist(intersect, pfrom);
+        //         var isLandInside = 
+        //             raytrace.isInside(jumper, this)
+        //             && !raytrace.isInside(jumperTo, this);
 
-                jumper.land(this, i, distToPoint, jumper.previousContour == this?
-                            jumper.previosIsInsideContour : isLandInside);  
-            }
-        }
+        //         jumper.land(this, i, distToPoint, jumper.previousContour == this?
+        //                     jumper.previosIsInsideContour : isLandInside);  
+        //     }
+        // }
         c.draw = function(){
             for (var i = 0; i < this.pointInds.length - 1; ++i){
                 var pfrom = this.p(i), pto = this.p(i + 1);

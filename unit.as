@@ -124,6 +124,8 @@ class unit {
         return o;
     }
 
+    /* static var jumpOffset = .00; */
+
     static function jumper(o:Object){
         o.flySpd = walls.point(0, 0);
 
@@ -136,11 +138,79 @@ class unit {
             this._x += spd._x;
             this._y += spd._y; 
         }
+        o.wallsToCollide = walls.contours;
+        o.wallsToCollideInside = new Array();
+        o.calculateWallsInside = function(){
+            this.wallsToCollide = walls.contours;
+            this.wallsToCollideInside = new Array();
+            for (var i = 0; i < this.wallsToCollide.length; ++i){
+                var isInsideContour = raytrace.isInside(this, this.wallsToCollide[i]);
+                this.wallsToCollideInside.push(isInsideContour);
+            }
+        }
+        o.calculateWallsInside();
 
         o.findInAirCollision = function(){
-            for (var i = 0; i < walls.contours.length; ++i)
-                if (o.standingOn == null)
-                    walls.contours[i].findCollision(o);
+            if (this.standingOn != null)
+                return;
+            var jfrom = walls.point(
+                this._x/* +  this.flySpd._x * jumpOffset*/,
+                this._y/* +  this.flySpd._y * jumpOffset*/);
+
+            var jto = walls.point(
+                this._x + this.flySpd._x /* * (1 + jumpOffset)*/,
+                this._y + this.flySpd._y /* * (1 + jumpOffset)*/);
+            
+            for (var w = 0; w < this.wallsToCollide.length; ++w){
+                var wall = this.wallsToCollide[w];
+                var closestDistToLand = undefined;
+                var closestInd = -1; var distToPoint;
+
+                for (var i = 0; i < wall.pointInds.length - 1; ++i){
+                    var pfrom = wall.p(i), pto = wall.p(i + 1);
+                    var intersect = raytrace.intersect(jfrom, jto, pfrom, pto);
+                    if (intersect == null)
+                        continue;
+                    // finally land
+                    var distToLand  = walls.dist(intersect, jfrom);
+                    if (closestDistToLand != undefined && closestDistToLand < distToLand)
+                        continue;
+                    closestInd = i;
+                    closestDistToLand = distToLand;
+                    distToPoint = walls.dist(intersect, pfrom);
+                }
+                if (closestInd < 0)
+                    continue;
+
+                var isLandInside = this.previousContour == wall? 
+                    this.previosIsInsideContour : this.wallsToCollideInside[w];
+                this.land(wall, closestInd, distToPoint, isLandInside);
+                return;
+            }
+
+            // var wall = this.wallsToCollide[w];
+            //     var bestDist = undefined, 
+            //         segmentLandDist = undefined,
+            //         bestDistSegmentInd = -1;
+            //     for (var i = 0; i < wall.pointInds.length - 1; ++i){
+            //         var pfrom = wall.p(i), pto = wall.p(i + 1);
+            //         var intersect = raytrace.intersect(jfrom, jto, pfrom, pto);
+            //         if (intersect == null)
+            //             continue;
+            //         var landDist = walls.dist(jfrom, intersect);
+            //         if (bestDist != undefined && bestDist > landDist)
+            //             continue;
+            //         bestDist = landDist;
+            //         bestDistSegmentInd = w;
+            //         segmentLandDist = walls.dist(intersect, pfrom);
+            //     }
+            //     if (bestDistSegmentInd < 0)
+            //         continue;
+            //     var isLandInside = this.previousContour == wall? 
+            //         this.previosIsInsideContour : this.wallsToCollideInside[w];
+            //     trace(wall +' '+ bestDistSegmentInd +' '+ segmentLandDist +' '+ isLandInside);
+            //     this.land(wall, bestDistSegmentInd, segmentLandDist, isLandInside);
+            //     return;
         }
 
         o.previousContour = null;
@@ -161,7 +231,9 @@ class unit {
             this.previousContour = this.standingOn;
             this.previosIsInsideContour = this.isInsideContour;
             this.standingOn = null;
+            this.calculateWallsInside();
         }
+        
         
         o.land = function(wallContour, segmentInd, segmentDist, isInsideContour){
             this.standOn(wallContour, segmentInd, segmentDist, isInsideContour);
@@ -182,12 +254,12 @@ class unit {
                         * (2 * m1 * v1 + v2 * (m2 - m1)) / (m1 + m2);
                 }
                 
-                _root.lineStyle(1, 0xFF0000);
-                _root.moveTo(this._x, this._y);
-                _root.lineTo(jumpPoint._x, jumpPoint._y);
-                _root.lineStyle(1, 0x00FF00);
-                _root.moveTo(this._x, this._y);
-                _root.lineTo((jumpPoint._x + this._x) * .5, (jumpPoint._y + this._y) * .5);
+                // _root.lineStyle(1, 0xFF0000);
+                // _root.moveTo(this._x, this._y);
+                // _root.lineTo(jumpPoint._x, jumpPoint._y);
+                // _root.lineStyle(1, 0x00FF00);
+                // _root.moveTo(this._x, this._y);
+                // _root.lineTo((jumpPoint._x + this._x) * .5, (jumpPoint._y + this._y) * .5);
             }   
             this.flySpd = walls.point(0, 0);
             this.recalculate();
