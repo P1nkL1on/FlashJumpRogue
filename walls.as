@@ -85,7 +85,6 @@ class walls{
             var sa = this.segmentAngs[object.segmentInd]
                 + !object.isInsideContour * 180
             while (sa > 180) sa -= 360; while (sa < -180) sa += 360;
-
             object.standingAngle = sa;
         }
         // Params of object segmentDist and segmentInd can technicly be any valued, but to make them
@@ -112,7 +111,7 @@ class walls{
                 if (object.segmentInd >= this.count)
                     object.segmentInd = 0;
             }
-            return false;
+            return object.onSegmentEnter == undefined? true : object.onSegmentEnter();
         }
         // simple debug function to draw a given contour
         c.draw = function(){

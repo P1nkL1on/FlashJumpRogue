@@ -43,8 +43,9 @@ class unit {
             o.recalculate();
         }
         o.recalculate = function(){
-            if (this.standingOn == null)
-                return;
+            // unchanged code of recalculate
+            if (this.standingOn == null) 
+                return false;
             this.standingOn.place(this);
             this._x = this.standingX; 
             this._y = this.standingY;
@@ -61,6 +62,7 @@ class unit {
         o.moveSpd = 0;
         o.moveAcs = .3;
         o.moveSpdMax = 3;
+        o.moveAcsForce = 0;
         
         // leftRightMultiplier is -1 or 1
         // which shows a direction (to descreasing dist to the closest vertex -1
@@ -72,13 +74,14 @@ class unit {
             // if not on the ground, then can't move on it
             if (this.standingOn == null)
                 return;
+            this.moveSpd += this.moveAcsForce;
             // if no desire to move and no speed then do nothing
             if (!leftRightMultiplier && !this.moveSpd)
                 return;
             // if a speed exists then slow down
             if (!leftRightMultiplier){
                 this.moveSpd *= this.standingOn.speedNegation;
-                if (Math.abs(this.moveSpd) < this.moveAcs)
+                if (!this.moveAcsForce && Math.abs(this.moveSpd) < this.moveAcs)
                     this.moveSpd = 0;
                 return;
             }
@@ -95,10 +98,11 @@ class unit {
         }
         // add a work to move and check a new places moven to
         o.addWork(function(){
-            if (o.moveSpd)
-                o.segmentDist += o.moveSpd;
-            // recalculate any frame, because of moving ground
+            if (o.standingOn == null)
+                return;
+            o.segmentDist += o.moveSpd;
             o.recalculate();
+            o.limitMoving();
         });
         return o;
     }
@@ -167,8 +171,8 @@ class unit {
     // then it will call a `land` method function.
     static function jumper(o:Object){
         o.flySpd = walls.point(0, 0);
-        o.airMoveAcs = .3;
-        o.airMoveSpdMax = 3;
+        o.airMoveAcs = .1;
+        o.airMoveSpdMax = 4;
 
         o.acselerateInAir = function(){
             this.flySpd._x += gx;
@@ -212,7 +216,7 @@ class unit {
             for (var w = 0; w < this.wallsToCollide.length; ++w){
                 var wall = this.wallsToCollide[w];
                 var closestDistToLand = undefined;
-                var closestInd = -1; var distToPoint;
+                var closestInd = -1; var distToPoint; var closestIntersect;
 
                 for (var i = 0; i < wall.pointInds.length - 1; ++i){
                     var pfrom = wall.p(i), pto = wall.p(i + 1);
@@ -225,6 +229,7 @@ class unit {
                         continue;
                     closestInd = i;
                     closestDistToLand = distToLand;
+                    closestIntersect = intersect;
                     distToPoint = walls.dist(intersect, pfrom);
                 }
                 if (closestInd < 0)
@@ -232,7 +237,9 @@ class unit {
 
                 var isLandInside = this.previousContour == wall? 
                     this.previosIsInsideContour : this.wallsToCollideInside[w];
-                this.land(wall, closestInd, distToPoint, isLandInside);
+                // this.land(wall, closestInd, distToPoint, isLandInside);
+                // this.bounce(wall, closestInd, closestIntersect, isLandInside);
+                this.resolveLanding(wall, closestInd, distToPoint, closestIntersect, isLandInside);
                 return;
             }
         }
@@ -276,7 +283,6 @@ class unit {
             this.standOn(wallContour, segmentInd, segmentDist, isInsideContour);
             if (this.moveSpd != undefined){
                 var wallAng = this.standingOn.segmentAngs[segmentInd] * Math.PI / 180;
-                // var wallNormalAng = wallAng + (!isInsideContour? 1 : -1) * .5 * Math.PI;
                 var jumpPoint = walls.point(this._x + this.flySpd._x, this._y + this.flySpd._y);
                 var jumpAng = walls.angRad(this, jumpPoint);
                 var landSpd = walls.dist(this, jumpPoint);
@@ -298,6 +304,25 @@ class unit {
             this.swapButtonPallete();
         }
 
+        o.bounce = function(wallContour, segmentInd, closestIntersect, isInsideContour){
+            var wallAng = wallContour.segmentAngs[segmentInd] * Math.PI / 180 + (isInsideContour? -1 : 1) * Math.PI * .5;
+            var jumpPoint = walls.point(this._x + this.flySpd._x, this._y + this.flySpd._y);
+            var jumpAng = walls.angRad(this, jumpPoint);
+            var landSpd = walls.dist(this, jumpPoint);
+            
+            var jumpSpeedMultiplier = .4;
+            var ang = wallAng * 2 - jumpAng + Math.PI, 
+                jumpCos = Math.cos(ang), jumpSin = Math.sin(ang);
+            this.flySpd._y = jumpSin * landSpd * jumpSpeedMultiplier;
+            this.flySpd._x = jumpCos * landSpd * jumpSpeedMultiplier;
+            this._x = closestIntersect._x;
+            this._y = closestIntersect._y;
+        }
+
+        // in usual pragma land on every edge
+        o.resolveLanding = function(wallContour, segmentInd, segmentDist, closestIntersect, isInsideContour)
+        { this.land(wallContour, segmentInd, segmentDist, isInsideContour); }
+
         o.addWork(function(){
             if (o.standingOn != null)
                 return;
@@ -308,6 +333,33 @@ class unit {
 
         return o;
     }
+
+    static function limitAngle(o){
+        o.prevSegmentInd = -1; o.prevStandingOn = null;
+        o.limitMoving = function(){
+            if (this.prevSegmentInd == this.segmentInd && this.prevStandingOn == this.standingOn)
+                return;
+            this.prevSegmentInd = this.segmentInd;
+            this.prevStandingOn = this.standingOn;
+            if (this.standingOn != null)
+                this.onSegmentEntered();
+        }
+        o.onSegmentEntered = function(){
+            var p = this.standingOn.segmentAngs[this.segmentInd] / 90;
+            if (Math.abs(p) > 1){
+                this.segmentDist -= this.moveSpd;
+                this.moveSpd = 0;
+                this.recalculate();
+            } else {
+                this.moveAcsForce = p * this.moveAcs * 2;
+            }
+        }
+        // o.resolveLanding = function(wall, closestInd, distToPoint, closestIntersect, isLandInside){
+
+        // }
+        return o;
+    }
+
 
     // makes an object controllable
     // should be included on a `mover or jumper` object, otherwise it would be no effects,
