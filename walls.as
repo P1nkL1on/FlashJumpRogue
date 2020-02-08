@@ -18,6 +18,8 @@ class walls{
     // push an array of given points to the world points array
     static function pushPoints(xys:Array){ for (var i = 0; i < xys.length; i += 2) points.push(point(xys[i], xys[i+1])); }
 
+    static function pushPointObjects(pp:Array){for (var i = 0; i < pp.length; ++i) points.push(pp[i]);}
+
     // return ||x, y||2 euqclid distance between 2 point-interfaced objects
     static function dist2(pointA, pointB){return Math.pow(pointA._x - pointB._x, 2) + Math.pow(pointA._y - pointB._y, 2);}
 
